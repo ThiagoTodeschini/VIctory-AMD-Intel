@@ -39,31 +39,41 @@ says what was found: on the i9-14900K, 16 logical processors of each kind.
 
 ## Measured on this machine (2026-11-25)
 
-The same save, standing still at the same spot (about 4,900 draws a frame), the
-shader cache warm, the same build (Belobug's `01aadd1` plus this fork's changes)
-with the changes on and off. Medians of the 5-second summaries that the
-diagnostics build logs, once the scene had settled:
+Every run: the same save, standing still at the same spot (about 4,800 to 4,900
+draws a frame), the shader cache warm. Medians of the 5-second summaries that
+the diagnostics build logs, once the scene had settled.
 
-| | Frames per second | ms a frame | CPU preparation | GPU | Copying back |
+**Now: 6.5 frames per second, 153 ms a frame**, with Belobug's `a59f3e5` plus
+this fork's changes, built for this processor (AVX2, see below), Series X:
+
+| Build | Frames per second | ms a frame | CPU preparation | On the GPU, as logged | Copying back |
 |---|---:|---:|---:|---:|---:|
-| Changes on | 4.4 | 228 | 94 ms | 95 ms | 36 ms |
-| Changes off | 4.3 | 231 | 96 ms | 97 ms | 35 ms |
+| Belobug `a59f3e5` + this fork | 6.5 | 153 | 49 ms | 11 ms | 11 ms |
+| Belobug `01aadd1` + this fork | 4.5 | 224 | 94 ms | 93 ms | 34 ms |
 
-"Off" is `VICTORY_FAST_CORES=0` and `VICTORY_EFFICIENCY_MODE=1`, without
-`VICTORY_DISK_CORES`.
+That step is Belobug's update of 25 November: the title's submissions return
+before the card is done, so the frame no longer stands waiting for it, and the
+recording work on the processor was cut down.
 
-**Standing still, the three changes make no measurable difference.** 4.4
-against 4.3 frames per second is within the noise between runs, although the log
-showed all three at work: the queue thread on the performance cores, the
-DirectStorage workers on the efficiency cores, the process out of efficiency
-mode. They have not been measured while driving or while new areas stream in,
-where the disk workers could matter more.
+**The three hybrid-processor changes, on and off, make no measurable difference
+standing still**: 4.4 against 4.3 frames per second, measured on `01aadd1` with
+the normal build, within the noise between runs, although the log showed all
+three at work. "Off" is `VICTORY_FAST_CORES=0` and `VICTORY_EFFICIENCY_MODE=1`,
+without `VICTORY_DISK_CORES`. Not measured yet on `a59f3e5`, where the
+processor waits less for the card, nor while driving or streaming new areas.
 
-What did make a difference here is Belobug's own update of 25 November, mostly
-copies of title memory on several threads. Before it (at `71652a2`), an earlier
-run at another spot gave 2.9 frames per second and 378 ms a frame, 73 ms of it
-copying memory back. That run was not at the same spot, so it is only a rough
-comparison.
+Other things tried here, on `01aadd1` at the same spot:
+
+| Tried | Frames per second | Result |
+|---|---:|---|
+| `--console series-s` (the game takes itself for a Series S: lower internal resolution) | 4.9 against 4.3 | +13%, for a softer picture |
+| Built for this processor: `-C target-cpu=native` (AVX2) | 4.5 against 4.3 to 4.4 | about +3%, at the edge of the noise |
+| `VICTORY_SHADER_LOOP_LIMIT=4096` | 4.5 against 4.5 | no change: the GPU time is not runaway shader loops |
+| DexNom's upload fills on 4 threads (ported, then taken out) | 4.4 against 4.5 | no change: here those fills are about 7 MB a frame |
+| Refreshes of sparse copies on 4 threads (tried, then taken out) | 4.4 against 4.5 | no change: the threads wait on one another, the tracking of what the title wrote runs one at a time |
+
+Belobug's `71652a2` (the morning of 25 November) gave 2.9 frames per second and
+378 ms a frame here, at another spot: a rough comparison only.
 
 Everything else is as in Belobug's fork, described below.
 
@@ -75,15 +85,20 @@ your paths in `victory.toml` (see `victory.example.toml`), then
     cargo build --profile diag -p victory --features diagnostics
     target\diag\victory.exe run <your game_scarlett_master.exe> --execute --console series-x
 
+For a build for your own processor only (AVX2 on the i9-14900K; it will not run
+on a processor without those instructions), in PowerShell first
+`$env:RUSTFLAGS = '-C target-cpu=native'`, and give it its own `--target-dir`.
+
 ## Em português
 
 Fork do VIctory-Belobug-AMD para PC com placa AMD Radeon e processador Intel
-híbrido (núcleos P e E), rodado numa RX 9070 XT com um i9-14900K. Ele mantém a
-thread das filas da GPU nos núcleos P, tira o processo do modo de eficiência do
-Windows e, com `VICTORY_DISK_CORES=slow`, manda a descompressão para os núcleos
-E. Medido parado no mesmo lugar, isso não mudou o fps: 4,4 com as mudanças
-contra 4,3 sem. O salto de 2,9 para 4,3 fps veio da atualização do próprio
-Belobug. Não tem nenhum arquivo do jogo: você precisa da sua própria cópia.
+híbrido (núcleos P e E), rodado numa RX 9070 XT com um i9-14900K. Medido parado
+no mesmo lugar: **6,5 fps** com o Belobug de 25/11 (`a59f3e5`) e o build com
+AVX2, contra 4,5 antes dessa atualização. As mudanças para Intel (thread das
+filas nos núcleos P, sem modo de eficiência, descompressão nos núcleos E com
+`VICTORY_DISK_CORES=slow`) não mudaram o fps parado: 4,4 com elas contra 4,3
+sem. O perfil Series S deu +13% com imagem mais suave, e o build com AVX2 uns
++3%. Não tem nenhum arquivo do jogo: você precisa da sua própria cópia.
 
 ---
 
