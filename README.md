@@ -37,12 +37,34 @@ process it takes for background work. Three changes, ported from
 The first and the third do nothing on a processor with one kind of core. The log
 says what was found: on the i9-14900K, 16 logical processors of each kind.
 
-## State on this machine (2026-11-25)
+## Measured on this machine (2026-11-25)
 
-Belobug's fork (at `71652a2`) reaches the world here at 2.7 to 2.9 frames per
-second: about 380 ms a frame, of which about 175 ms is preparation on the CPU,
-97 ms on the GPU and 73 ms copying memory back. The effect of the changes above
-has not been measured yet; a comparison with them on and off will be added here.
+The same save, standing still at the same spot (about 4,900 draws a frame), the
+shader cache warm, the same build (Belobug's `01aadd1` plus this fork's changes)
+with the changes on and off. Medians of the 5-second summaries that the
+diagnostics build logs, once the scene had settled:
+
+| | Frames per second | ms a frame | CPU preparation | GPU | Copying back |
+|---|---:|---:|---:|---:|---:|
+| Changes on | 4.4 | 228 | 94 ms | 95 ms | 36 ms |
+| Changes off | 4.3 | 231 | 96 ms | 97 ms | 35 ms |
+
+"Off" is `VICTORY_FAST_CORES=0` and `VICTORY_EFFICIENCY_MODE=1`, without
+`VICTORY_DISK_CORES`.
+
+**Standing still, the three changes make no measurable difference.** 4.4
+against 4.3 frames per second is within the noise between runs, although the log
+showed all three at work: the queue thread on the performance cores, the
+DirectStorage workers on the efficiency cores, the process out of efficiency
+mode. They have not been measured while driving or while new areas stream in,
+where the disk workers could matter more.
+
+What did make a difference here is Belobug's own update of 25 November, mostly
+copies of title memory on several threads. Before it (at `71652a2`), an earlier
+run at another spot gave 2.9 frames per second and 378 ms a frame, 73 ms of it
+copying memory back. That run was not at the same spot, so it is only a rough
+comparison.
+
 Everything else is as in Belobug's fork, described below.
 
 ## Build and run
@@ -59,7 +81,9 @@ Fork do VIctory-Belobug-AMD para PC com placa AMD Radeon e processador Intel
 híbrido (núcleos P e E), rodado numa RX 9070 XT com um i9-14900K. Ele mantém a
 thread das filas da GPU nos núcleos P, tira o processo do modo de eficiência do
 Windows e, com `VICTORY_DISK_CORES=slow`, manda a descompressão para os núcleos
-E. Não tem nenhum arquivo do jogo: você precisa da sua própria cópia.
+E. Medido parado no mesmo lugar, isso não mudou o fps: 4,4 com as mudanças
+contra 4,3 sem. O salto de 2,9 para 4,3 fps veio da atualização do próprio
+Belobug. Não tem nenhum arquivo do jogo: você precisa da sua própria cópia.
 
 ---
 
