@@ -1,3 +1,70 @@
+# VIctory for AMD Radeon + Intel hybrid processors (work in progress)
+
+A fork of [Belobug's VIctory fork for AMD Radeon](https://github.com/Belobug/VIctory-Belobug-AMD),
+itself a fork of [VIctory](https://github.com/Marvisak/VIctory) by Marvisak and its
+contributors, for PCs that pair an **AMD Radeon card** with an **Intel hybrid
+processor** (Core 12th to 14th generation, with performance and efficiency cores).
+Belobug's fork is run on an all-AMD PC (Ryzen 7 9800X3D); this one is run on:
+
+| Part | |
+|------|---|
+| Graphics | AMD Radeon RX 9070 XT 16 GB, the same card as Belobug's |
+| Processor | Intel Core i9-14900K: 8 performance and 16 efficiency cores, 32 threads |
+| Memory | 32 GB DDR5-4800 |
+| System | Windows 11, Series X profile |
+
+**This repository contains no game files, code or assets.** You need your own
+copy of the game. It is not affiliated with or endorsed by the game's developer
+or publisher.
+
+## What this fork adds for Intel hybrid processors
+
+Windows spreads a game's threads over both kinds of core, and it can slow down a
+process it takes for background work. Three changes, ported from
+[fxceless/victory-fork](https://github.com/fxceless/victory-fork) (commit
+`0b0074e`, tested by its author on an i7-14700KF):
+
+- **The queue thread stays on the performance cores.** `victory-queues` runs the
+  held back GPU queues that a frame waits for; it is kept on the fastest cores
+  with `SetThreadSelectedCpuSets`. `VICTORY_FAST_CORES=0` turns this off.
+- **No efficiency mode.** The process opts out of Windows' execution-speed
+  throttling (EcoQoS). `VICTORY_EFFICIENCY_MODE=1` puts it back.
+- **Disk decompression on the efficiency cores, when asked.**
+  `VICTORY_DISK_CORES=slow` keeps the DirectStorage workers on the efficiency
+  cores (8 or more are needed) and leaves the performance cores to the game.
+  Off by default.
+
+The first and the third do nothing on a processor with one kind of core. The log
+says what was found: on the i9-14900K, 16 logical processors of each kind.
+
+## State on this machine (2026-11-25)
+
+Belobug's fork (at `71652a2`) reaches the world here at 2.7 to 2.9 frames per
+second: about 380 ms a frame, of which about 175 ms is preparation on the CPU,
+97 ms on the GPU and 73 ms copying memory back. The effect of the changes above
+has not been measured yet; a comparison with them on and off will be added here.
+Everything else is as in Belobug's fork, described below.
+
+## Build and run
+
+As in Belobug's fork: install Rust and the Visual Studio C++ build tools, put
+your paths in `victory.toml` (see `victory.example.toml`), then
+
+    cargo build --profile diag -p victory --features diagnostics
+    target\diag\victory.exe run <your game_scarlett_master.exe> --execute --console series-x
+
+## Em português
+
+Fork do VIctory-Belobug-AMD para PC com placa AMD Radeon e processador Intel
+híbrido (núcleos P e E), rodado numa RX 9070 XT com um i9-14900K. Ele mantém a
+thread das filas da GPU nos núcleos P, tira o processo do modo de eficiência do
+Windows e, com `VICTORY_DISK_CORES=slow`, manda a descompressão para os núcleos
+E. Não tem nenhum arquivo do jogo: você precisa da sua própria cópia.
+
+---
+
+*Everything below is Belobug's README, unchanged.*
+
 # VIctory fork for AMD Radeon (work in progress)
 
 This is a fork of [VIctory](https://github.com/Marvisak/VIctory) by Marvisak
