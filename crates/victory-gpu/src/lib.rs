@@ -20,6 +20,8 @@ mod capture;
 #[cfg(windows)]
 mod card;
 pub mod console;
+#[cfg(windows)]
+pub mod cores;
 #[cfg(all(windows, feature = "diagnostics"))]
 mod copystat;
 #[cfg(all(windows, feature = "diagnostics"))]

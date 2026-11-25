@@ -256,6 +256,9 @@ fn watch() {
     let started = std::thread::Builder::new()
         .name("victory-queues".into())
         .spawn(|| {
+            // It runs held back queues, which the frame then waits for.
+            #[cfg(windows)]
+            crate::cores::keep_on_fast_cores("victory-queues");
             loop {
                 if !held() {
                     std::thread::sleep(Duration::from_millis(2));
